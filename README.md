@@ -15,12 +15,11 @@ The SweetCam honeypot application is composed by four parts:
 3. The Web service, this is used to provide the web service for the attackers, including viewing the camera page, logging etc.
 4. The Cowrie service, this is used as the SSH honeypot for providing the SSH service for the attackers.
 
-
-
 # How to run the application
+
 To run launch the application, just enter the root directory of the application and launch the application with the following command (remember to add a .env file with required environment variables):
 
-```shell
+```sh
 docker compose up -d
 ```
 
@@ -35,7 +34,7 @@ Once the four services are lunched, there are several configurations should be m
 
 1. Enter the rtsp_service container with the following command:
 
-   ```
+   ```sh
    docker exec -it rtsp_service /bin/sh
    ```
 
@@ -44,8 +43,11 @@ Once the four services are lunched, there are several configurations should be m
 3. Then use the FFmpeg tool to push the video to mediamtx server (RTSP server)
 
 # Deploy on cloud
-Take Azure Cloud as example.
+
+See [Azure Cloud](https://azure.microsoft.com/en-us/products/cloud-services) as example.
+
 ## Configure SSH
+
 First we need to change the used SSH port since the default one 22 should be used by Cowrie honeypot.
 1. sudo vim /etc/ssh/sshd_config.
 2. Change the port to another one, 2404 for example.
@@ -54,34 +56,35 @@ First we need to change the used SSH port since the default one 22 should be use
 5. Revise the virtual machine network policy to allow 2404 traffic.
 
 ## Install Docker tool chain
-1. sudo apt-get -y update
-2. sudo apt-get -y install ca-certificates curl gnupg
-3. sudo install -m 0755 -d /etc/apt/keyrings 
-4. curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 
-5. sudo chmod a+r /etc/apt/keyrings/docker.gpg
-6. echo \
-   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-7. sudo apt-get update
-8. sudo apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-Or to use the script `./install-docker.sh`, before using it change its permission with `sudo chmod 776 install-docker.sh`
+To install docker, refer to the original script provided by `docker`.
+```sh
+# Up to date script for install.
+curl -fsSL https://raw.githubusercontent.com/docker/docker-install/master/install.sh -o install.sh
+# Make it executable.
+sudo chmod +x install.sh
+# Run script with sudo.
+sudo ./install.sh
+# Add user to the docker user group to run docker without sudo. Logout and login with the user.
+sudo usermod -aG docker $USER
+```
 
 ## Deploy application
-The procedures are as follows:
+
+The deployement goes as follows:
 1. Revise the virtual machine network policy to allow 80, 554, 2404 (customized port for SSH), 22 traffic.
-2. git clone https://github.com/Agachily/sweetcam.git
-3. Create and populate the .env file 
+2. Clone the repository with `git clone https://github.com/Agachily/sweetcam.git`.
+3. Create the .env from template file and populate the variables `cp .template.env .env`.
 4. Run the application in the background: `docker compose up -d` (stop with `docker compose down -v`)
-5. Enter the container of rtsp service: docker exec -it rtsp_service /bin/sh and configure the logging function
-6. Use FFmpeg to push to video to RTSP server. ffmpeg -nostdin -re -stream_loop -1 -i ./videos/fake-video.mp4 -c copy -f rtsp rtsp://localhost:8554/mystream
-7. View it at rtsp://public_ip:554/mystream
-8. Check the volumes: docker volume ls
-9. Inspect volume: docker volume inspect  sweetcam_rtsp-resource
-10. Get the logs from the volume
+5. Enter the container of rtsp service: `docker exec -it rtsp_service /bin/sh` and configure the logging function.
+6. Use FFmpeg to push to video to RTSP server. `ffmpeg -nostdin -re -stream_loop -1 -i ./videos/fake-video.mp4 -c copy -f rtsp rtsp://localhost:8554/mystream`.
+7. View it at `rtsp://public_ip:554/mystream`.
+8. Check the volumes: `docker volume ls`.
+9. Inspect volume: `docker volume inspect sweetcam_rtsp-resource`.
+10. Get the logs from the volume.
 
 ## Example of getting the logs from remote honeypot
-```shell
+
+```sh
 scp -r -i ./key.pem -P 2404 azureuser@public_ip:/home/azureuser/logs/sweetcam_cowrie-log ./attack-logs/machine-a/
 ```
